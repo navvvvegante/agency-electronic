@@ -40,34 +40,72 @@
 
   --fadeMs:520ms;
   --fadeEase:cubic-bezier(.2,.7,.2,1);
+
+  /* video overlay */
+  --splashFadeMs:900ms; /* último segundo: fade out */
 }
 
+/* reset */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 
 body{
   margin:0;
-  background:#0b0f15;
+  background:var(--bg);
   color:var(--ink);
   font-family:var(--font);
   font-size:var(--fs);
   line-height:var(--lh);
-  overflow-x:hidden; /* evita scroll lateral por el background */
+  overflow-x:hidden;
 }
 
-/* fade overlay */
+/* =========================
+   SPLASH VIDEO OVERLAY
+   ========================= */
+.splash{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  background:var(--bg);
+  display:block;
+  opacity:1;
+  pointer-events:auto;
+}
+
+.splash video{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  background:var(--bg);
+}
+
+/* fade out (triggered via JS) */
+.splash.is-fading{
+  opacity:0;
+  transition:opacity var(--splashFadeMs) var(--fadeEase);
+  pointer-events:none;
+}
+
+/* removed from layout (after fade) */
+.splash.is-hidden{
+  display:none;
+}
+
+/* =========================
+   PAGE CONTENT ENTRY
+   ========================= */
+
+/* fade overlay: solo cuando el contenido entra */
 body::before{
   content:"";
   position:fixed;
   inset:0;
   background:#0b0f15;
-  opacity:1;
+  opacity:0;
   pointer-events:none;
   z-index:9999;
-  animation:fadeOut var(--fadeMs) var(--fadeEase) forwards;
 }
-
-@keyframes fadeOut{ to{ opacity:0; } }
 
 /* main canvas */
 .frame{
@@ -77,10 +115,13 @@ body::before{
   position:relative;
   overflow:hidden;
 
-  /* SOLO opacity, no transform (transform rompe fixed) */
+  /* inicia oculto. se activa con .is-ready */
   opacity:0;
+}
+
+/* cuando el splash termina, hacemos fade in al contenido */
+.is-ready .frame{
   animation:contentIn var(--fadeMs) var(--fadeEase) forwards;
-  animation-delay:60ms;
 }
 
 @keyframes contentIn{ to{ opacity:1; } }
@@ -99,12 +140,11 @@ body::before{
   left:50%;
   top:56%;
   transform:translate(-50%,-50%);
-  width:160vmax;     /* gigante sin empujar layout */
+  width:160vmax;
   height:auto;
   max-width:none;
   display:block;
-
-  opacity:0.022;     /* mucho más tenue */
+  opacity:0.022;
   color:#111;
 }
 
@@ -116,7 +156,6 @@ body::before{
   justify-content:space-between;
   align-items:flex-start;
   gap:2.5rem;
-
   position:relative;
   z-index:1;
 }
@@ -155,7 +194,7 @@ body::before{
   display:block;
 }
 
-/* bottom wordmark (fixed to viewport) */
+/* bottom wordmark */
 .wordmark{
   position:fixed;
   left:0;
@@ -177,11 +216,11 @@ body::before{
   display:block;
 }
 
-/* hide background in mobile + stack layout */
+/* mobile */
 @media (max-width:43.75rem){
   :root{
-    --fs:0.875rem;   /* 14px */
-    --lh:1.25rem;    /* 20px */
+    --fs:0.875rem;
+    --lh:1.25rem;
     --bottomSafe:8.25rem;
   }
 
@@ -202,18 +241,27 @@ body::before{
   }
 }
 
-/* reduced motion */
+/* reduced motion: sin video splash */
 @media (prefers-reduced-motion: reduce){
-  body::before{ animation:none; opacity:0; }
-  .frame{ animation:none; opacity:1; }
+  .splash{ display:none !important; }
+  .frame{ opacity:1 !important; }
 }
 </style>
 </head>
 
 <body>
 
-<main class="frame">
+<!-- Splash video overlay -->
+<div class="splash" id="splash" aria-hidden="true">
+  <video id="splashVideo" playsinline muted autoplay preload="auto">
+    <!-- Desktop first -->
+    <source src="ae-animation-desktop.mp4" type="video/mp4" media="(min-width: 701px)">
+    <!-- Mobile -->
+    <source src="ae-animation-mobile.mp4" type="video/mp4" media="(max-width: 700px)">
+  </video>
+</div>
 
+<main class="frame">
   <div class="bg-mark" aria-hidden="true">
     <svg viewBox="0 0 2216 1014" xmlns="http://www.w3.org/2000/svg">
       <path d="M262.114 767.884L475.005 239.964H545.148L755.578 767.884H671.898L607.908 607.908H408.553L345.794 767.884H262.114ZM435.626 541.456H584.527L529.15 391.325C525.869 382.301 522.998 373.687 520.536 365.483C518.075 357.279 516.024 349.075 514.383 340.871C512.743 332.667 511.922 324.874 511.922 317.49H507C507 324.874 506.18 332.667 504.539 340.871C503.718 348.255 502.078 356.459 499.616 365.483C497.976 373.687 495.104 382.301 491.002 391.325L435.626 541.456ZM507 1014C437.267 1014 371.636 1000.87 310.107 974.621C248.578 948.369 194.432 912.272 147.67 866.33C101.728 819.568 65.6311 765.422 39.3786 703.893C13.1262 642.364 0 576.733 0 507C0 436.447 13.1262 370.816 39.3786 310.107C65.6311 248.578 101.728 194.842 147.67 148.901C194.432 102.138 248.578 65.6311 310.107 39.3786C371.636 13.1262 437.267 0 507 0C577.553 0 643.184 13.1262 703.893 39.3786C765.422 65.6311 819.158 102.138 865.099 148.901C911.862 194.842 948.369 248.578 974.621 310.107C1000.87 370.816 1014 436.447 1014 507C1014 576.733 1000.87 642.364 974.621 703.893C948.369 765.422 911.862 819.568 865.099 866.33C819.158 912.272 765.422 948.369 703.893 974.621C643.184 1000.87 577.553 1014 507 1014ZM507 945.087C567.709 945.087 624.315 934.012 676.82 911.862C730.145 888.891 776.908 857.306 817.107 817.107C857.306 776.908 888.48 730.556 910.631 678.051C933.602 624.726 945.087 567.709 945.087 507C945.087 446.291 933.602 389.685 910.631 337.18C888.48 283.854 857.306 237.092 817.107 196.893C776.908 156.694 730.145 125.519 676.82 103.369C624.315 80.398 567.709 68.9126 507 68.9126C446.291 68.9126 389.274 80.398 335.949 103.369C283.444 125.519 237.092 156.694 196.893 196.893C156.694 237.092 125.109 283.854 102.138 337.18C79.9879 389.685 68.9126 446.291 68.9126 507C68.9126 567.709 79.9879 624.726 102.138 678.051C125.109 730.556 156.694 776.908 196.893 817.107C237.092 857.306 283.444 888.891 335.949 911.862C389.274 934.012 446.291 945.087 507 945.087Z" fill="currentColor"/>
@@ -264,7 +312,6 @@ body::before{
       <img src="ae_icon.svg" alt="AE" />
     </div>
   </section>
-
 </main>
 
 <footer class="wordmark" aria-label="Agency electronic wordmark">
@@ -272,6 +319,63 @@ body::before{
     <img src="agency-electronic.svg" alt="Agency electronic" />
   </div>
 </footer>
+
+<script>
+(function () {
+  const splash = document.getElementById("splash");
+  const video = document.getElementById("splashVideo");
+
+  // If video fails to autoplay, we still want to reveal content quickly
+  const SAFETY_TIMEOUT_MS = 8000;
+
+  let finished = false;
+
+  function reveal() {
+    if (finished) return;
+    finished = true;
+
+    // start fading out the splash during the last second
+    splash.classList.add("is-fading");
+
+    // after fade completes, remove overlay and reveal page
+    window.setTimeout(() => {
+      splash.classList.add("is-hidden");
+      document.body.classList.add("is-ready");
+    }, 950);
+  }
+
+  // Start with content hidden until splash ends
+  // When splash is done, body gets .is-ready which triggers the content fade-in
+  // Fallback: if 'ended' doesn't fire, reveal after timeout
+  const safety = window.setTimeout(reveal, SAFETY_TIMEOUT_MS);
+
+  // Prefer to fade out ~1s before the end if we can read duration
+  function scheduleFadeNearEnd() {
+    if (!video || !isFinite(video.duration) || video.duration <= 1) return;
+    const ms = Math.max(0, (video.duration - 1) * 1000);
+    window.setTimeout(reveal, ms);
+  }
+
+  video.addEventListener("loadedmetadata", scheduleFadeNearEnd);
+  video.addEventListener("ended", reveal);
+  video.addEventListener("error", () => {
+    window.clearTimeout(safety);
+    // no video? just show page
+    splash.classList.add("is-hidden");
+    document.body.classList.add("is-ready");
+  });
+
+  // Try play (some browsers need explicit call even with autoplay)
+  if (video && typeof video.play === "function") {
+    video.play().catch(() => {
+      // Autoplay blocked: reveal quickly
+      window.clearTimeout(safety);
+      splash.classList.add("is-hidden");
+      document.body.classList.add("is-ready");
+    });
+  }
+})();
+</script>
 
 </body>
 </html>
