@@ -119,6 +119,22 @@ body::before{
   opacity:0;
 }
 
+/* inicia oculto todo el contenido del sitio */
+.frame,
+.wordmark{
+  opacity:0;
+}
+
+/* cuando el splash empieza a irse, hacemos fade in de TODO */
+.is-ready .frame,
+.is-ready .wordmark{
+  animation:contentIn var(--fadeMs) var(--fadeEase) forwards;
+}
+
+@keyframes contentIn{
+  to{ opacity:1; }
+}
+
 /* cuando el splash termina, hacemos fade in al contenido */
 .is-ready .frame{
   animation:contentIn var(--fadeMs) var(--fadeEase) forwards;
@@ -330,19 +346,21 @@ body::before{
 
   let finished = false;
 
-  function reveal() {
-    if (finished) return;
-    finished = true;
+function reveal() {
+  if (finished) return;
+  finished = true;
 
-    // start fading out the splash during the last second
-    splash.classList.add("is-fading");
+  // 1) en cuanto empieza el fade del video, hacemos aparecer el contenido
+  document.body.classList.add("is-ready");
 
-    // after fade completes, remove overlay and reveal page
-    window.setTimeout(() => {
-      splash.classList.add("is-hidden");
-      document.body.classList.add("is-ready");
-    }, 950);
-  }
+  // 2) empezamos el fade out del splash
+  splash.classList.add("is-fading");
+
+  // 3) cuando termina el fade, removemos el splash
+  window.setTimeout(() => {
+    splash.classList.add("is-hidden");
+  }, 950);
+}
 
   // Start with content hidden until splash ends
   // When splash is done, body gets .is-ready which triggers the content fade-in
